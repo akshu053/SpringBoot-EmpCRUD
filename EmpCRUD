@@ -1,0 +1,149 @@
+
+//EmployeeRepository.java
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Repository;
+
+@Repository
+public interface EmployeeRepository extends JpaRepository<Employee, Long> {
+    Page<Employee> findAll(Pageable pageable);
+}
+
+//EmpServiceImpl
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+
+@Service
+public class EmpServiceImpl implements EmpServiceInterface {
+
+    @Autowired
+    private EmployeeDao employeeDao; 
+
+    @Override
+    public Page<Employee> getEmployeesWithPagination(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return employeeDao.findAll(pageable);
+    }
+}
+
+//IEmpDAO
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
+public interface EmployeeDao {
+    Page<Employee> findAll(Pageable pageable);
+}
+
+//EmpDAOImpl
+@Repository
+public class EmployeeDaoImpl implements EmployeeDao {
+
+    @Autowired
+    private EmployeeRepository employeeRepository;
+
+    @Override
+    public Page<Employee> findAll(Pageable pageable) {
+        return employeeRepository.findAll(pageable);
+    }
+}
+
+
+//EmpController
+import org.springframework.data.domain.Page;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/api/emp")
+public class EmployeeController {
+
+    @Autowired
+    private EmpServiceInterface empService;
+
+    @GetMapping("/paginated")
+    public Page<Employee> getEmployeesWithPagination(@RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "5") int size) {
+        return empService.getEmployeesWithPagination(page, size);
+    }
+}
+
+
+//HTML JS
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Employee Pagination</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  </head>
+  <body>
+    <div class="container">
+      <h1>Employee List</h1>
+      <table class="table table-striped">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Department</th>
+          </tr>
+        </thead>
+        <tbody id="employeeTableBody"></tbody>
+      </table>
+
+      <!-- Pagination Controls -->
+      <div>
+        <button id="prevPageBtn" class="btn btn-primary">Previous</button>
+        <span id="pageInfo"></span>
+        <button id="nextPageBtn" class="btn btn-primary">Next</button>
+      </div>
+    </div>
+
+    <script>
+      let currentPage = 0;
+      let totalPages = 0;
+
+      async function fetchEmployees(page) {
+        const response = await fetch(`http://localhost:8080/api/emp/paginated?page=${page}&size=5`);
+        const data = await response.json();
+
+        totalPages = data.totalPages;
+        currentPage = data.number;
+
+        // Clear the table
+        const tableBody = document.getElementById("employeeTableBody");
+        tableBody.innerHTML = "";
+
+        // Populate the table
+        data.content.forEach(employee => {
+          const row = `<tr>
+                        <td>${employee.id}</td>
+                        <td>${employee.name}</td>
+                        <td>${employee.department}</td>
+                      </tr>`;
+          tableBody.innerHTML += row;
+        });
+
+        // Update page info
+        document.getElementById("pageInfo").textContent = `Page ${currentPage + 1} of ${totalPages}`;
+      }
+
+      document.getElementById("prevPageBtn").addEventListener("click", () => {
+        if (currentPage > 0) {
+          fetchEmployees(currentPage - 1);
+        }
+      });
+
+      document.getElementById("nextPageBtn").addEventListener("click", () => {
+        if (currentPage < totalPages - 1) {
+          fetchEmployees(currentPage + 1);
+        }
+      });
+
+      // Fetch initial data
+      fetchEmployees(currentPage);
+    </script>
+  </body>
+</html>
