@@ -14,5 +14,6 @@ public interface IEmpService {
 	public Employee addEmp(Employee emp);
 	public Employee upEmp(Employee emp);
 	public void deleteEmp(Integer id);
+	Page<Employee> getPaginationEmp(int pageNo, int pageSize);
 
 }
