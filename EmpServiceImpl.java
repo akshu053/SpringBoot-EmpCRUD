@@ -20,7 +20,11 @@ public class EmpServiceImpl implements IEmpService{
 	
 	@Autowired
 	EmployeeDAOImpl employeeDAO;
-	
+
+	@Override
+	public Page<Employee> getPaginationEmp(int pageNo, int pageSize) {
+		return employeeDAO.getPaginationEmp(pageNo, pageSize);
+	}
 	
 	@Override
 	public List<Employee> getAllEmp(){
