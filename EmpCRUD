@@ -1,149 +1,172 @@
-
-//EmployeeRepository.java
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.stereotype.Repository;
-
-@Repository
-public interface EmployeeRepository extends JpaRepository<Employee, Long> {
-    Page<Employee> findAll(Pageable pageable);
-}
-
-//EmpServiceImpl
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.stereotype.Service;
-
-@Service
-public class EmpServiceImpl implements EmpServiceInterface {
-
-    @Autowired
-    private EmployeeDao employeeDao; 
-
-    @Override
-    public Page<Employee> getEmployeesWithPagination(int page, int size) {
-        Pageable pageable = PageRequest.of(page, size);
-        return employeeDao.findAll(pageable);
-    }
-}
-
-//IEmpDAO
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-
-public interface EmployeeDao {
-    Page<Employee> findAll(Pageable pageable);
-}
-
-//EmpDAOImpl
-@Repository
-public class EmployeeDaoImpl implements EmployeeDao {
-
-    @Autowired
-    private EmployeeRepository employeeRepository;
-
-    @Override
-    public Page<Employee> findAll(Pageable pageable) {
-        return employeeRepository.findAll(pageable);
-    }
-}
-
-
-//EmpController
-import org.springframework.data.domain.Page;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
-
-@RestController
-@RequestMapping("/api/emp")
-public class EmployeeController {
-
-    @Autowired
-    private EmpServiceInterface empService;
-
-    @GetMapping("/paginated")
-    public Page<Employee> getEmployeesWithPagination(@RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "5") int size) {
-        return empService.getEmployeesWithPagination(page, size);
-    }
-}
-
-
-//HTML JS
-<!doctype html>
+//HTML
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Employee Pagination</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  </head>
-  <body>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employee List</title>
+    <link rel="stylesheet" href="styles.css"> <!-- Link to your CSS file -->
+</head>
+<body>
     <div class="container">
-      <h1>Employee List</h1>
-      <table class="table table-striped">
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Name</th>
-            <th>Department</th>
-          </tr>
-        </thead>
-        <tbody id="employeeTableBody"></tbody>
-      </table>
+        <h2>Employee List</h2>
+        <table id="employeeTable">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Department</th>
+                    <th>ECN</th>
+                    <th>Phone</th>
+                    <th>Gender</th>
+                    <th>Hobbies</th>
+                    <th>Address</th>
+                </tr>
+            </thead>
+            <tbody id="employeeTableBody">
+                <!-- Employee rows will be populated here -->
+            </tbody>
+        </table>
 
-      <!-- Pagination Controls -->
-      <div>
-        <button id="prevPageBtn" class="btn btn-primary">Previous</button>
-        <span id="pageInfo"></span>
-        <button id="nextPageBtn" class="btn btn-primary">Next</button>
-      </div>
+        <!-- Pagination Controls -->
+        <div id="pagination">
+            <button id="prevPage" style="display: none;">Previous</button>
+            <button id="nextPage" style="display: none;">Next</button>
+        </div>
     </div>
 
-    <script>
-      let currentPage = 0;
-      let totalPages = 0;
+    <script src="updateEmp.js"></script> <!-- Link to your JavaScript file -->
+</body>
+</html>
 
-      async function fetchEmployees(page) {
-        const response = await fetch(`http://localhost:8080/api/emp/paginated?page=${page}&size=5`);
-        const data = await response.json();
 
-        totalPages = data.totalPages;
-        currentPage = data.number;
+//CSS
+/* styles.css */
+body {
+    font-family: Arial, sans-serif;
+    margin: 20px;
+}
 
-        // Clear the table
-        const tableBody = document.getElementById("employeeTableBody");
-        tableBody.innerHTML = "";
+.container {
+    max-width: 800px;
+    margin: auto;
+}
 
-        // Populate the table
-        data.content.forEach(employee => {
-          const row = `<tr>
-                        <td>${employee.id}</td>
-                        <td>${employee.name}</td>
-                        <td>${employee.department}</td>
-                      </tr>`;
-          tableBody.innerHTML += row;
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+table, th, td {
+    border: 1px solid black;
+}
+
+th, td {
+    padding: 8px;
+    text-align: left;
+}
+
+th {
+    background-color: #f2f2f2;
+}
+
+#pagination {
+    margin-top: 10px;
+}
+
+button {
+    padding: 10px 15px;
+    margin: 0 5px;
+    cursor: pointer;
+    border: none;
+    background-color: #007bff;
+    color: white;
+    border-radius: 4px;
+}
+
+button:hover {
+    background-color: #0056b3;
+}
+
+
+//JS
+// updateEmp.js
+document.addEventListener("DOMContentLoaded", () => {
+    const employeeTableBody = document.getElementById("employeeTableBody");
+    const prevPage = document.getElementById("prevPage");
+    const nextPage = document.getElementById("nextPage");
+
+    let currentPage = 0;
+    const pageSize = 2; // Set your default page size here
+
+    const fetchEmpData = async (pageNo) => {
+        const response = await fetch(`http://localhost:8080/api/emp/paginated?pageNo=${pageNo}&pageSize=${pageSize}`);
+        if (!response.ok) {
+            throw new Error(`Error fetching employees: ${response.status}`);
+        }
+        return await response.json();
+    };
+
+    const populateTable = (employees) => {
+        employeeTableBody.innerHTML = ""; // Clear the table body
+        employees.content.forEach(employee => {
+            const row = `<tr>
+                <td>${employee.id}</td>
+                <td>${employee.name}</td>
+                <td>${employee.department}</td>
+                <td>${employee.ecn}</td>
+                <td>${employee.phone}</td>
+                <td>${employee.gender}</td>
+                <td>${employee.hobbies.join(", ")}</td>
+                <td>${employee.address}</td>
+            </tr>`;
+            employeeTableBody.innerHTML += row;
         });
 
-        // Update page info
-        document.getElementById("pageInfo").textContent = `Page ${currentPage + 1} of ${totalPages}`;
-      }
+        // Update pagination
+        prevPage.style.display = currentPage > 0 ? "block" : "none";
+        nextPage.style.display = currentPage < employees.totalPages - 1 ? "block" : "none";
+    };
 
-      document.getElementById("prevPageBtn").addEventListener("click", () => {
+    const loadEmployees = async () => {
+        try {
+            const employees = await fetchEmpData(currentPage);
+            populateTable(employees);
+        } catch (error) {
+            console.error(error);
+        }
+    };
+
+    prevPage.addEventListener("click", (event) => {
+        event.preventDefault();
         if (currentPage > 0) {
-          fetchEmployees(currentPage - 1);
+            currentPage--;
+            loadEmployees();
         }
-      });
+    });
 
-      document.getElementById("nextPageBtn").addEventListener("click", () => {
-        if (currentPage < totalPages - 1) {
-          fetchEmployees(currentPage + 1);
-        }
-      });
+    nextPage.addEventListener("click", (event) => {
+        event.preventDefault();
+        currentPage++;
+        loadEmployees();
+    });
 
-      // Fetch initial data
-      fetchEmployees(currentPage);
-    </script>
-  </body>
-</html>
+    loadEmployees(); // Initial load
+});
+
+Explanation of the Code
+HTML Structure:
+
+The HTML contains a table for displaying employee data and buttons for pagination.
+The id attributes on the buttons allow for easy access from JavaScript.
+CSS Styles:
+
+Basic styles for the table and buttons are provided to make them visually appealing.
+JavaScript Logic:
+
+The script fetches employee data from the backend using the fetchEmpData function.
+The populateTable function populates the table with employee data.
+Pagination buttons (Previous and Next) navigate between pages by changing the currentPage variable and reloading the employee data.
+Testing
+Make sure your backend service is running and correctly returning paginated employee data.
+Open the HTML file in a browser to see the employee list and test the pagination functionality.
