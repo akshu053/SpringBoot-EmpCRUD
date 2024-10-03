@@ -92,9 +92,12 @@ public List<Employee> empList;
 		
 	}
 	
-	public Page<Employee> getEmpPagination(Integer pageNo, Integer pageSize){
+	@Override
+	public Page<Employee> getPaginationEmp(int pageNo, int pageSize) {
+		Pageable pageable = PageRequest.of(pageNo,  pageSize);
 		return empRepo.findAll(pageable);
 	}
+	
 
 
 }
