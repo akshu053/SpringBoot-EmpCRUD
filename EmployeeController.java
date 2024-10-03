@@ -27,9 +27,9 @@ public class EmployeeController {
 	@Autowired
 	private EmpServiceImpl empService;
 	
-	@GetMapping("/pageNo")
-	public Page<Employee> getEmpPagination(@RequestParam(defaultValue="0") Integer pageNo, @RequestParam(defaultValue="10") Integer pageSize){
-		return empService.getEmpPagination(pageNo, pageSize);
+	@GetMapping("/emp/pagination")
+	public Page<Employee> getPaginationEmp(@RequestParam(defaultValue="0") int pageNo, @RequestParam(defaultValue="2") int pageSize){
+		return empService.getPaginationEmp(pageNo, pageSize);
 	}
 	
 	
