@@ -67,9 +67,5 @@ public class EmpServiceImpl implements IEmpService{
 		employeeDAO.deleteEmp(id);
 	}
 
-	public Page<Employee> getEmpPagination(Integer pageNo, Integer pageSize) {
-		return employeeDAO.getEmpPagination(pageNo, pageSize);
-		
-	}
 
 }
