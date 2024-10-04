@@ -170,3 +170,136 @@ Pagination buttons (Previous and Next) navigate between pages by changing the cu
 Testing
 Make sure your backend service is running and correctly returning paginated employee data.
 Open the HTML file in a browser to see the employee list and test the pagination functionality.
+let currentPage = 0;  // Start at the first page
+let pageSize = 2;     // Set the number of employees per page
+let totalPages = 0;
+
+async function getData(pageNo = 0) {
+    const url = `http://localhost:8080/api/emp/pagination?pageNo=${pageNo}&pageSize=${pageSize}`;
+    try {
+        const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error(`Response Status: ${response.status}`);
+        }
+        
+        const paginatedData = await response.json();
+        console.log(paginatedData);
+        empTable(paginatedData.content);  // Only show current page data
+        
+        // Update pagination info
+        currentPage = paginatedData.pageable.pageNumber;
+        totalPages = paginatedData.totalPages;
+
+        updatePaginationButtons();  // Enable/disable pagination buttons based on current page
+    } catch (error) {
+        console.error(error.message);
+    }
+}
+
+function empTable(empData) {
+    const tableBody = document.createElement("tbody");
+    const table = document.querySelector(".table");
+
+    // Clear the previous rows
+    table.querySelector("tbody")?.remove();
+
+    // Add rows for current page data
+    empData.forEach(emp => {
+        const tableRow = document.createElement("tr");
+
+        const tdId = document.createElement("td");
+        tdId.innerText = emp.id;
+        tableRow.appendChild(tdId);
+
+        const tdName = document.createElement("td");
+        tdName.innerText = emp.name;
+        tableRow.appendChild(tdName);
+
+        const tdDept = document.createElement("td");
+        tdDept.innerText = emp.department;
+        tableRow.appendChild(tdDept);
+
+        const tdEcn = document.createElement("td");
+        tdEcn.innerText = emp.ecn;
+        tableRow.appendChild(tdEcn);
+
+        const tdPhone = document.createElement("td");
+        tdPhone.innerText = emp.phone;
+        tableRow.appendChild(tdPhone);
+
+        const tdHobby = document.createElement("td");
+        tdHobby.innerText = emp.hobbies;
+        tableRow.appendChild(tdHobby);
+
+        const tdAdd = document.createElement("td");
+        tdAdd.innerText = emp.address;
+        tableRow.appendChild(tdAdd);
+
+        const tdActions = document.createElement("td");
+
+        const updateButton = document.createElement("button");
+        updateButton.innerText = "Update";
+        updateButton.classList.add('btn', 'btn-primary');
+        updateButton.addEventListener('click', () => {
+            window.location.href = `updateEmp.html?id=${emp.id}`;
+        });
+
+        const deleteButton = document.createElement("button");
+        deleteButton.innerText = "Delete";
+        deleteButton.classList.add('btn', 'btn-danger');
+        deleteButton.addEventListener('click', () => deleteEmp(emp.id, tableRow));
+
+        tdActions.appendChild(updateButton);
+        tdActions.appendChild(deleteButton);
+        tableRow.appendChild(tdActions);
+        tableBody.appendChild(tableRow);
+    });
+
+    table.appendChild(tableBody);
+}
+
+async function deleteEmp(id, tableRow) {
+    const url = `http://localhost:8080/api/delEmp/${id}`;
+    
+    try {
+        const response = await fetch(url, {
+            method: "DELETE",
+        });
+        if (!response.ok) {
+            throw new Error(`Failed to delete employee ${id}`);
+        }
+        tableRow.remove();
+        console.log(`EmpId ${id} deleted successfully`);
+    } catch (error) {
+        console.error(error.message);
+    }
+}
+
+function updatePaginationButtons() {
+    const prevBtn = document.getElementById("prevBtn");
+    const nextBtn = document.getElementById("nextBtn");
+    const pageInfo = document.getElementById("pagination-info");
+
+    // Update page info
+    pageInfo.innerText = `Page ${currentPage + 1} of ${totalPages}`;
+
+    // Enable/Disable buttons
+    prevBtn.disabled = currentPage === 0;
+    nextBtn.disabled = currentPage === totalPages - 1;
+}
+
+// Event listeners for pagination buttons
+document.getElementById("prevBtn").addEventListener("click", () => {
+    if (currentPage > 0) {
+        getData(currentPage - 1);
+    }
+});
+
+document.getElementById("nextBtn").addEventListener("click", () => {
+    if (currentPage < totalPages - 1) {
+        getData(currentPage + 1);
+    }
+});
+
+// Initially fetch the first page of data
+getData(currentPage);
